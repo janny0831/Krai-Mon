@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบช่วยแปลงาน (Task Translator)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Prompt', sans-serif; }
+        .tab-active-krai { background-color: #EFF6FF; border-color: #3B82F6; color: #1D4ED8; }
+        .tab-active-mon { background-color: #FDF2F8; border-color: #EC4899; color: #BE185D; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+
+    <!-- Main Container -->
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden p-6 space-y-6">
+        
+        <!-- Header -->
+        <div class="text-center">
+            <h1 class="text-2xl font-bold text-gray-800">📋 ระบบรายงานการทำงาน</h1>
+            <p class="text-gray-500 text-sm mt-1">เลือกชื่อและงานเพื่อคัดลอกภาษาจีน</p>
+        </div>
+
+        <!-- 1. Select Person -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-3">1. เลือกพนักงาน (เลือกชื่อของคุณ)</label>
+            <div class="grid grid-cols-2 gap-4">
+                <button id="btn-krai" onclick="selectPerson('krai')" class="p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all">
+                    👨🏻‍🔧 阿凱 (Krai)
+                </button>
+                <button id="btn-mon" onclick="selectPerson('mon')" class="p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-pink-50 hover:border-pink-300 transition-all">
+                    👩🏻‍💼 娜萌 (Mon)
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. Select Task -->
+        <div id="task-section" class="hidden space-y-2 opacity-0 transition-opacity duration-500">
+            <label class="block text-sm font-medium text-gray-700">2. เลือกงานที่ทำ (ภาษาไทย)</label>
+            <select id="task-select" onchange="selectTask()" class="w-full p-3 border-2 border-gray-300 rounded-xl focus:ring-0 focus:border-blue-500 bg-white text-gray-700 text-base">
+                <option value="">-- กรุณาเลือกงาน --</option>
+            </select>
+        </div>
+
+        <!-- 3. Result & Copy -->
+        <div id="result-section" class="hidden space-y-2 opacity-0 transition-opacity duration-500 pt-2">
+            <label class="block text-sm font-medium text-gray-700">คำแปลภาษาจีนที่ต้องใช้ส่ง:</label>
+            <div class="bg-gray-50 border border-gray-200 p-4 rounded-xl flex flex-col gap-4">
+                <p id="zh-result" class="text-xl font-bold text-gray-800 text-center break-words"></p>
+                <button onclick="copyText()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
+                    <span id="copy-btn-text">คัดลอกข้อความ (Copy)</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification (Message Box) -->
+    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none flex items-center gap-2 z-50">
+        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        คัดลอกสำเร็จ! (Copied)
+    </div>
+
+    <script>
+        // Database
+        const data = {
+            krai: [
+                { th: "เช็ดกระจกชั้น 1 และชั้น 2", zh: "擦1-2樓玻璃" },
+                { th: "เช็ดกระจกชั้น 1", zh: "擦1樓玻璃" },
+                { th: "เช็ดกระจกชั้น 2", zh: "擦2樓玻璃" },
+                { th: "เช็คแผงไอโอ", zh: "檢查IO面板" },
+                { th: "ใส่โซ่สายลมและงานอื่นๆ", zh: "套氣管相關等其他工作。" },
+                { th: "ใส่กล่องคอมเครื่องจักรและงานอื่นๆ", zh: "安裝電腦機台等其他工作。" },
+                { th: "ติดตั้งชิ้นส่วนเครื่องจักรและงานอื่นๆ", zh: "安裝機台零件等其他工作" },
+                { th: "ติดตั้งแผงไฟ", zh: "安裝燈板" },
+                { th: "ตัดหญ้าทำความสะอาดบริเวณโรงงาน", zh: "割草、清理廠區" },
+                { th: "ประกอบแผงคอม", zh: "組裝電腦面板" },
+                { th: "รื้อชั้นวางของ", zh: "拆除置物架" },
+                { th: "ล้างแอร์", zh: "洗冷氣空調" },
+                { th: "ทำสายไฟ", zh: "電線離線作業" },
+                { th: "ตัดสายลมและงานอื่นๆ", zh: "剪氣管等其他工作" },
+                { th: "ทำความสะอาดร่องน้ำ", zh: "清潔水道" },
+                { th: "ประกอบชั้นวางของ", zh: "組裝置物架" }
+            ],
+            mon: [
+                { th: "เรื่องเอกสาร", zh: "文件排整齊" },
+                { th: "แยกเอกสาร", zh: "整理文件" },
+                { th: "ชั้น 2 ล้างห้องน้ำ", zh: "2樓清潔浴室" },
+                { th: "ชั้น 1 ล้างห้องน้ำ", zh: "1樓清潔浴室" },
+                { th: "ชั้น 1 และชั้น 2ล้างห้องน้ำ", zh: "1-2樓清潔浴室" },
+                { th: "ถ่ายรูปเช็คของ", zh: "拍照並檢查確認物品。" },
+                { th: "ถ่ายรูปเรียงเอกสาร", zh: "拍照並整理文件" },
+                { th: "ทำความสะอาดชั้น 2", zh: "打掃清潔2樓" },
+                { th: "ทำความสะอาดชั้น 1", zh: "打掃清潔1樓" },
+                { th: "ทำความสะอาดชั้น 1 และชั้น 2", zh: "打掃清潔1-2樓" },
+                { th: "ทำความสะอาดออฟฟิศ", zh: "打掃清潔辦公室" },
+                { th: "ล้างทางเดิน", zh: "清理清潔走道" }
+            ]
+        };
+
+        let currentTasks = [];
+
+        function selectPerson(person) {
+            // Reset styles
+            document.getElementById('btn-krai').className = "p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all";
+            document.getElementById('btn-mon').className = "p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-pink-50 hover:border-pink-300 transition-all";
+            
+            // Set active style
+            if(person === 'krai') {
+                document.getElementById('btn-krai').classList.add('tab-active-krai');
+                currentTasks = data.krai;
+            } else {
+                document.getElementById('btn-mon').classList.add('tab-active-mon');
+                currentTasks = data.mon;
+            }
+
+            // Populate dropdown
+            const select = document.getElementById('task-select');
+            select.innerHTML = '<option value="">-- กรุณาเลือกงานที่ทำ --</option>'; // Default option
+            
+            currentTasks.forEach(task => {
+                const option = document.createElement('option');
+                option.value = task.zh;
+                option.textContent = task.th;
+                select.appendChild(option);
+            });
+
+            // Show task section
+            const taskSection = document.getElementById('task-section');
+            taskSection.classList.remove('hidden');
+            // Small delay to allow display:block to render before changing opacity for animation
+            setTimeout(() => {
+                taskSection.classList.remove('opacity-0');
+            }, 50);
+
+            // Hide result section when switching persons
+            document.getElementById('result-section').classList.add('hidden');
+            document.getElementById('result-section').classList.add('opacity-0');
+        }
+
+        function selectTask() {
+            const select = document.getElementById('task-select');
+            const resultSection = document.getElementById('result-section');
+            const zhResult = document.getElementById('zh-result');
+
+            if (select.value) {
+                zhResult.textContent = select.value;
+                resultSection.classList.remove('hidden');
+                setTimeout(() => {
+                    resultSection.classList.remove('opacity-0');
+                }, 50);
+            } else {
+                resultSection.classList.add('opacity-0');
+                setTimeout(() => {
+                    resultSection.classList.add('hidden');
+                }, 300);
+            }
+        }
+
+        function copyText() {
+            const text = document.getElementById('zh-result').textContent;
+            
+            // Use execCommand for better cross-browser/iframe compatibility on mobile
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast();
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            const btnText = document.getElementById('copy-btn-text');
+            
+            // Change button visual temporarily
+            btnText.textContent = "คัดลอกแล้ว!";
+            
+            // Show toast
+            toast.classList.remove('opacity-0');
+            
+            // Hide after 2 seconds
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                btnText.textContent = "คัดลอกข้อความ (Copy)";
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
