@@ -1,282 +1,477 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบช่วยแปลงาน (Task Translator)</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Prompt', sans-serif; }
-        .tab-active-krai { background-color: #EFF6FF; border-color: #3B82F6; color: #1D4ED8; }
-        .tab-active-mon { background-color: #FDF2F8; border-color: #EC4899; color: #BE185D; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบรายงานการทำงาน · 工作回報系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@500;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef1f4;
+    --paper:#ffffff;
+    --paper-2:#f7f8f6;
+    --line:rgba(27,38,53,.10);
+    --line-strong:rgba(27,38,53,.20);
+    --ink:#1b2635;
+    --ink-dim:#667085;
+    --amber:#e3a21e;
+    --amber-rgb:227,162,30;
+    --accent-krai:#2b6cb0;
+    --accent-krai-rgb:43,108,176;
+    --accent-mon:#c2547c;
+    --accent-mon-rgb:194,84,124;
+    --accent:#e3a21e;
+    --accent-rgb:227,162,30;
+    --green:#2f9e6e;
+    --mx:50%;
+    --my:0%;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(1100px 560px at 50% -8%, rgba(43,108,176,.06), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Prompt','Noto Sans TC',sans-serif;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px 16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .grid-overlay{
+    position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:
+      linear-gradient(rgba(27,38,53,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27,38,53,.05) 1px, transparent 1px);
+    background-size:34px 34px;
+    mask-image:radial-gradient(720px 520px at 50% 20%, #000, transparent 75%);
+  }
+
+  .card{
+    position:relative;
+    width:100%;
+    max-width:420px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:20px;
+    box-shadow:0 24px 60px -24px rgba(27,38,53,.28), 0 1px 0 rgba(27,38,53,.03);
+    overflow:hidden;
+    z-index:1;
+    transition:box-shadow .4s ease;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:radial-gradient(360px 360px at var(--mx) var(--my), rgba(var(--accent-rgb),.10), transparent 65%);
+    transition:background-position .15s ease-out, opacity .3s;
+    opacity:1;
+    z-index:0;
+  }
+  .card-inner{position:relative;z-index:1;padding:26px 24px 26px;}
+
+  header.head{margin-bottom:18px;text-align:center;}
+  header.head h1{
+    margin:0 0 6px;
+    font-size:27px;font-weight:600;letter-spacing:.01em;color:var(--ink);
+  }
+  header.head .zh-sub{
+    font-family:'Noto Sans TC','Prompt',sans-serif;
+    font-size:14.5px;color:var(--ink-dim);font-weight:500;
+    letter-spacing:.02em;
+  }
+
+  /* Ticket tear-off divider: reads as a work-slip perforation, punched flush to the card edges */
+  .ticket-divider{
+    position:relative;
+    height:0;
+    margin:20px -24px 22px;
+    border-top:2px dashed var(--line-strong);
+  }
+  .ticket-divider::before,.ticket-divider::after{
+    content:"";
+    position:absolute;top:0;transform:translate(0,-50%);
+    width:18px;height:18px;border-radius:50%;
+    background:var(--bg);
+  }
+  .ticket-divider::before{left:-9px;}
+  .ticket-divider::after{right:-9px;}
+
+  .step-label{
+    display:flex;align-items:baseline;gap:9px;margin-bottom:12px;
+  }
+  .step-num{
+    font-family:'JetBrains Mono','Prompt',monospace;
+    font-size:12px;font-weight:600;color:var(--amber);
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  }
+  .step-text{font-size:13px;color:var(--ink-dim);font-weight:400;}
+
+  /* Step 1: person select — styled like ID badges */
+  .person-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px;}
+  .person-btn{
+    position:relative;
+    aspect-ratio:1/1;
+    padding:0;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    cursor:pointer;
+    overflow:hidden;
+    transition:border-color .2s, box-shadow .2s, transform .15s;
+  }
+  .person-btn:active{transform:scale(.98);}
+  .person-btn:focus-visible{outline:2px solid var(--accent-krai);outline-offset:2px;}
+  .person-btn .photo{
+    display:block;
+    width:100%;height:100%;
+    object-fit:cover;
+  }
+
+  .person-btn.selected.krai{
+    border-color:var(--accent-krai);
+    box-shadow:0 0 0 3px rgba(var(--accent-krai-rgb),.18), 0 8px 22px -14px rgba(var(--accent-krai-rgb),.5);
+  }
+  .person-btn.selected.mon{
+    border-color:var(--accent-mon);
+    box-shadow:0 0 0 3px rgba(var(--accent-mon-rgb),.18), 0 8px 22px -14px rgba(var(--accent-mon-rgb),.5);
+  }
+
+  /* Sections reveal */
+  .section{
+    max-height:0;opacity:0;overflow:hidden;
+    transition:max-height .45s ease, opacity .35s ease, margin-top .45s ease;
+  }
+  .section.visible{max-height:900px;opacity:1;margin-top:22px;}
+
+  .task-panel{
+    max-height:230px;overflow-y:auto;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--paper-2);
+  }
+  .task-panel::-webkit-scrollbar{width:6px;}
+  .task-panel::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:6px;}
+
+  .task-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    transition:background .15s;
+  }
+  .task-row:last-child{border-bottom:none;}
+  .task-row:hover{background:rgba(27,38,53,.03);}
+  .task-row.checked{background:rgba(var(--accent-rgb),.08);}
+  .task-row span.label{font-size:14.5px;color:var(--ink);user-select:none;padding-right:10px;}
+  .task-row input[type=checkbox]{
+    appearance:none;-webkit-appearance:none;
+    width:22px;height:22px;flex:0 0 22px;
+    border-radius:7px;border:1.5px solid var(--line-strong);
+    background:var(--paper);
+    cursor:pointer;position:relative;
+    transition:border-color .15s, background .15s;
+  }
+  .task-row input[type=checkbox]:focus-visible{outline:2px solid var(--accent-krai);outline-offset:2px;}
+  .task-row input[type=checkbox]:checked{
+    background:var(--accent);border-color:var(--accent);
+  }
+  .task-row input[type=checkbox]:checked::after{
+    content:"";position:absolute;left:6px;top:2px;width:6px;height:11px;
+    border:solid #1b2635;border-width:0 2px 2px 0;transform:rotate(40deg);
+  }
+
+  .btn{
+    width:100%;
+    border:none;border-radius:13px;
+    padding:13px 16px;
+    font-family:inherit;font-weight:600;font-size:14.5px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    transition:filter .15s, transform .12s, box-shadow .15s;
+  }
+  .btn:active{transform:scale(.98);}
+  .btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px;}
+  .btn-confirm{
+    margin-top:12px;
+    background:linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 82%, #7a4e00));
+    color:#241a05;
+    box-shadow:0 10px 22px -12px rgba(var(--accent-rgb),.55);
+  }
+  .btn-confirm:hover{filter:brightness(1.04);}
+  .btn-copy{
+    background:linear-gradient(180deg, var(--green), color-mix(in srgb, var(--green) 80%, #06381f));
+    color:#fff;
+    box-shadow:0 10px 22px -12px rgba(47,158,110,.5);
+  }
+  .btn-copy:hover{filter:brightness(1.05);}
+
+  .result-panel{
+    position:relative;
+    border:1px solid var(--line);
+    background:var(--paper-2);
+    border-radius:14px;
+    padding:16px;
+  }
+  .result-panel::before{
+    content:"";
+    position:absolute;top:-1px;left:16px;right:16px;
+    border-top:2px dashed var(--line-strong);
+  }
+  .result-title{
+    font-family:'JetBrains Mono','Prompt',monospace;
+    font-size:11px;color:var(--ink-dim);margin-bottom:10px;letter-spacing:.05em;text-transform:uppercase;
+  }
+  #zh-result{
+    font-family:'Noto Sans TC','Prompt',sans-serif;
+    font-size:16px;font-weight:600;line-height:1.7;
+    color:var(--ink);white-space:pre-line;word-break:break-word;
+    margin:0 0 14px;
+  }
+
+  .toast{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    background:var(--paper);color:var(--ink);
+    border:1px solid var(--line-strong);
+    padding:11px 20px;border-radius:999px;
+    box-shadow:0 16px 34px -14px rgba(27,38,53,.35);
+    display:flex;align-items:center;gap:8px;
+    font-size:14px;font-weight:500;
+    opacity:0;pointer-events:none;
+    transition:opacity .3s, transform .3s;
+    z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+  .toast svg{color:var(--green);flex:0 0 auto;}
+
+  @media (prefers-reduced-motion:reduce){
+    *{transition-duration:.01ms !important;}
+  }
+</style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+<body>
 
-    <!-- Main Container -->
-    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden p-6 space-y-6">
-        
-        <!-- Header -->
-        <div class="text-center">
-            <h1 class="text-2xl font-bold text-gray-800">📋 ระบบรายงานการทำงาน</h1>
-            <p class="text-gray-500 text-sm mt-1">เลือกชื่อและงานเพื่อคัดลอกภาษาจีน</p>
-        </div>
+<div class="grid-overlay"></div>
 
-        <!-- 1. Select Person -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-3">1. เลือกพนักงาน (เลือกชื่อของคุณ)</label>
-            <div class="grid grid-cols-2 gap-4">
-                <button id="btn-krai" onclick="selectPerson('krai')" class="p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all">
-                    👨🏻‍🔧 阿凱 (Krai)
-                </button>
-                <button id="btn-mon" onclick="selectPerson('mon')" class="p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-pink-50 hover:border-pink-300 transition-all">
-                    👩🏻‍💼 娜萌 (Mon)
-                </button>
-            </div>
-        </div>
+<main class="card" id="card">
+  <div class="card-inner">
 
-        <!-- 2. Select Task -->
-        <div id="task-section" class="hidden space-y-2 opacity-0 transition-opacity duration-500">
-            <label class="block text-sm font-medium text-gray-700">2. เลือกงานที่ทำ (ภาษาไทย) - เลือกได้หลายข้อ</label>
-            
-            <!-- ซ่อน Select ตัวเดิมไว้เป็นระบบเบื้องหลัง -->
-            <select id="task-select" multiple class="hidden">
-            </select>
-            
-            <!-- เพิ่มกล่อง Checkbox UI เข้ามาใหม่ตรงนี้ -->
-            <div id="task-checkbox-list" class="w-full h-56 overflow-y-auto border-2 border-gray-300 rounded-xl bg-white shadow-inner"></div>
+    <header class="head">
+      <h1>ระบบรายงานการทำงาน</h1>
+      <div class="zh-sub">ลือกชื่อและงานเพื่อคัดลอกภาษาจีน字</div>
+    </header>
 
-            <button onclick="confirmSelection()" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-xl shadow-md transition-colors mt-2">
-                ยืนยัน (Confirm)
-            </button>
-        </div>
+    <div class="ticket-divider"></div>
 
-        <!-- 3. Result & Copy -->
-        <div id="result-section" class="hidden space-y-2 opacity-0 transition-opacity duration-500 pt-2">
-            <label class="block text-sm font-medium text-gray-700">คำแปลภาษาจีนที่ต้องใช้ส่ง:</label>
-            <div class="bg-gray-50 border border-gray-200 p-4 rounded-xl flex flex-col gap-4">
-                <p id="zh-result" class="text-lg font-bold text-gray-800 text-left break-words whitespace-pre-line"></p>
-                <button onclick="copyText()" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-xl shadow-md transition-colors flex items-center justify-center gap-2">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"></path></svg>
-                    <span id="copy-btn-text">คัดลอกข้อความ (Copy)</span>
-                </button>
-            </div>
-        </div>
-
+    <!-- Step 1 -->
+    <div class="step-label"><span class="step-num">01</span><span class="step-text">เลือกพนักงาน (เลือกชื่อของคุณ)</span></div>
+    <div class="person-grid">
+      <button id="btn-krai" class="person-btn" onclick="selectPerson('krai')" aria-label="Krai / 阿凱">
+        <img class="photo" src="https://lh3.googleusercontent.com/d/1Yw2T6WOtDXWS7ViFFrRedHQotfPEvgkb" alt="Krai">
+      </button>
+      <button id="btn-mon" class="person-btn" onclick="selectPerson('mon')" aria-label="Mon / 娜萌">
+        <img class="photo" src="https://lh3.googleusercontent.com/d/1MFwU9sj2R6MMkOAJOwqRfjd0n2lYBmso" alt="Mon">
+      </button>
     </div>
 
-    <!-- Toast Notification (Message Box) -->
-    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none flex items-center gap-2 z-50">
-        <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-        คัดลอกสำเร็จ! (Copied)
+    <!-- Step 2 -->
+    <div id="task-section" class="section">
+      <div class="step-label"><span class="step-num">02</span><span class="step-text">เลือกงานที่ทำ (เลือกได้หลายข้อ)</span></div>
+
+      <select id="task-select" multiple style="display:none"></select>
+      <div id="task-checkbox-list" class="task-panel"></div>
+
+      <button class="btn btn-confirm" onclick="confirmSelection()">
+        ยืนยัน (Confirm)
+      </button>
     </div>
 
-    <script>
-        // Database
-        const data = {
-            krai: [
-                { th: "เช็ดกระจกชั้น 1 และชั้น 2", zh: "擦1-2樓玻璃" },
-                { th: "เช็ดกระจกชั้น 1", zh: "擦1樓玻璃" },
-                { th: "เช็ดกระจกชั้น 2", zh: "擦2樓玻璃" },
-                { th: "เช็คแผงไอโอ", zh: "檢查IO面板" },
-                { th: "ใส่โซ่สายลมและงานอื่นๆ", zh: "套氣管相關等其他工作。" },
-                { th: "ใส่กล่องคอมเครื่องจักรและงานอื่นๆ", zh: "安裝電腦機台等其他工作。" },
-                { th: "ติดตั้งชิ้นส่วนเครื่องจักรและงานอื่นๆ", zh: "安裝機台零件等其他工作" },
-                { th: "ติดตั้งแผงไฟ", zh: "安裝燈板" },
-                { th: "ตัดหญ้าทำความสะอาดบริเวณโรงงาน", zh: "割草、清理廠區" },
-                { th: "ตัดหญ้าบริเวณโรงงาน", zh: "廠區割草" },
-                { th: "ทำความสะอาดบริเวณโรงงาน", zh: "清理廠區" },
-                { th: "ประกอบแผงคอม", zh: "組裝電腦面板" },
-                { th: "รื้อชั้นวางของ", zh: "拆除置物架" },
-                { th: "ล้างแอร์", zh: "洗冷氣空調" },
-                { th: "ทำสายไฟ", zh: "電線離線作業" },
-                { th: "ตัดสายลมและงานอื่นๆ", zh: "剪氣管等其他工作" },
-                { th: "ทำความสะอาดร่องน้ำ", zh: "清潔水道" },
-                { th: " ขัดพื้นลงแว๊ก", zh: "地板清潔打蠟" },
-                { th: " ขัดพื้น", zh: "刷洗地板 / 洗地" },
-                { th: "ฉาบปูน", zh: "抹水泥" },
-                { th: "ยิงแผ่นยิปซั่ม", zh: "安裝石膏板" },
-                { th: "ทาสี", zh: "刷油漆" },
-                { th: "โป๊สีทาสี", zh: "補土刷油漆" },
-                { th: "ประกอบชั้นวางของ", zh: "組裝置物架" }
-            ],
-            mon: [
-                { th: "เรื่องเอกสาร", zh: "文件排整齊" },
-                { th: "แยกเอกสาร", zh: "整理文件" },
-                { th: "ชั้น 2 ล้างห้องน้ำ", zh: "2樓清潔浴室" },
-                { th: "ชั้น 1 ล้างห้องน้ำ", zh: "1樓清潔浴室" },
-                { th: "ชั้น 1 และชั้น 2ล้างห้องน้ำ", zh: "1-2樓清潔浴室" },
-                { th: "ถ่ายรูปเช็คของ", zh: "拍照並檢查確認物品。" },
-                { th: "ถ่ายรูปเรียงเอกสาร", zh: "拍照並整理文件" },
-                { th: "ทำความสะอาดชั้น 2", zh: "打掃清潔2樓" },
-                { th: "ทำความสะอาดชั้น 1", zh: "打掃清潔1樓" },
-                { th: "ทำความสะอาดชั้น 1 และชั้น 2", zh: "打掃清潔1-2樓" },
-                { th: "ทำความสะอาดออฟฟิศ", zh: "打掃清潔辦公室" },
-                { th: "ล้างทางเดิน", zh: "清理清潔走道" }
-            ]
-        };
+    <!-- Step 3 -->
+    <div id="result-section" class="section">
+      <div class="step-label"><span class="step-num">03</span><span class="step-text">คำแปลภาษาจีนที่ต้องใช้ส่ง</span></div>
+      <div class="result-panel">
+        <div class="result-title">คัดลอกข้อความนี้ไปส่ง / 複製以下文字送出</div>
+        <p id="zh-result"></p>
+        <button class="btn btn-copy" onclick="copyText()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+          <span id="copy-btn-text">คัดลอกข้อความ (Copy)</span>
+        </button>
+      </div>
+    </div>
 
-        let currentTasks = [];
+  </div>
+</main>
 
-        function selectPerson(person) {
-            // Reset styles
-            document.getElementById('btn-krai').className = "p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-blue-50 hover:border-blue-300 transition-all";
-            document.getElementById('btn-mon').className = "p-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-pink-50 hover:border-pink-300 transition-all";
-            
-            // Set active style
-            if(person === 'krai') {
-                document.getElementById('btn-krai').classList.add('tab-active-krai');
-                currentTasks = data.krai;
-            } else {
-                document.getElementById('btn-mon').classList.add('tab-active-mon');
-                currentTasks = data.mon;
-            }
+<div id="toast" class="toast">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+  คัดลอกสำเร็จ! (Copied)
+</div>
 
-            // Populate dropdown
-            const select = document.getElementById('task-select');
-            select.innerHTML = '<option value="">-- กรุณาเลือกงานที่ทำ --</option>'; // Default option
-            
-            // 新增：抓取並清空核取方塊列表
-            const checkboxList = document.getElementById('task-checkbox-list');
-            checkboxList.innerHTML = '';
-            
-            currentTasks.forEach((task, index) => {
-                // 保留現有代碼邏輯
-                const option = document.createElement('option');
-                option.value = task.zh;
-                option.textContent = task.th;
-                option.id = `opt-${index}`; // 新增 ID 以利後台連動
-                select.appendChild(option);
+<script>
+  // ---------- Data (unchanged) ----------
+  const data = {
+    krai: [
+      { th: "เช็ดกระจกชั้น 1 และชั้น 2", zh: "擦1-2樓玻璃" },
+      { th: "เช็ดกระจกชั้น 1", zh: "擦1樓玻璃" },
+      { th: "เช็ดกระจกชั้น 2", zh: "擦2樓玻璃" },
+      { th: "เช็คแผงไอโอ", zh: "檢查IO面板" },
+      { th: "ใส่โซ่สายลมและงานอื่นๆ", zh: "套氣管相關等其他工作。" },
+      { th: "ใส่กล่องคอมเครื่องจักรและงานอื่นๆ", zh: "安裝電腦機台等其他工作。" },
+      { th: "ติดตั้งชิ้นส่วนเครื่องจักรและงานอื่นๆ", zh: "安裝機台零件等其他工作" },
+      { th: "ติดตั้งแผงไฟ", zh: "安裝燈板" },
+      { th: "ตัดหญ้าทำความสะอาดบริเวณโรงงาน", zh: "割草、清理廠區" },
+      { th: "ตัดหญ้าบริเวณโรงงาน", zh: "廠區割草" },
+      { th: "ทำความสะอาดบริเวณโรงงาน", zh: "清理廠區" },
+      { th: "ประกอบแผงคอม", zh: "組裝電腦面板" },
+      { th: "รื้อชั้นวางของ", zh: "拆除置物架" },
+      { th: "ล้างแอร์", zh: "洗冷氣空調" },
+      { th: "ทำสายไฟ", zh: "電線離線作業" },
+      { th: "ตัดสายลมและงานอื่นๆ", zh: "剪氣管等其他工作" },
+      { th: "ทำความสะอาดร่องน้ำ", zh: "清潔水道" },
+      { th: " ขัดพื้นลงแว๊ก", zh: "地板清潔打蠟" },
+      { th: " ขัดพื้น", zh: "刷洗地板 / 洗地" },
+      { th: "ฉาบปูน", zh: "抹水泥" },
+      { th: "ยิงแผ่นยิปซั่ม", zh: "安裝石膏板" },
+      { th: "ทาสี", zh: "刷油漆" },
+      { th: "โป๊สีทาสี", zh: "補土刷油漆" },
+      { th: "ประกอบชั้นวางของ", zh: "組裝置物架" }
+    ],
+    mon: [
+      { th: "เรื่องเอกสาร", zh: "文件排整齊" },
+      { th: "แยกเอกสาร", zh: "整理文件" },
+      { th: "ชั้น 2 ล้างห้องน้ำ", zh: "2樓清潔浴室" },
+      { th: "ชั้น 1 ล้างห้องน้ำ", zh: "1樓清潔浴室" },
+      { th: "ชั้น 1 และชั้น 2ล้างห้องน้ำ", zh: "1-2樓清潔浴室" },
+      { th: "ถ่ายรูปเช็คของ", zh: "拍照並檢查確認物品。" },
+      { th: "ถ่ายรูปเรียงเอกสาร", zh: "拍照並整理文件" },
+      { th: "ทำความสะอาดชั้น 2", zh: "打掃清潔2樓" },
+      { th: "ทำความสะอาดชั้น 1", zh: "打掃清潔1樓" },
+      { th: "ทำความสะอาดชั้น 1 และชั้น 2", zh: "打掃清潔1-2樓" },
+      { th: "ทำความสะอาดออฟฟิศ", zh: "打掃清潔辦公室" },
+      { th: "ล้างทางเดิน", zh: "清理清潔走道" }
+    ]
+  };
 
-                // 新增：產生右側帶有打勾方塊的選單 UI
-                const label = document.createElement('label');
-                label.className = "flex items-center justify-between p-3 hover:bg-gray-100 rounded-lg cursor-pointer border-b border-gray-100 last:border-0 transition-colors";
-                
-                const spanText = document.createElement('span');
-                spanText.className = "text-gray-700 text-base select-none";
-                spanText.textContent = task.th;
+  let currentTasks = [];
+  const card = document.getElementById('card');
 
-                const checkbox = document.createElement('input');
-                checkbox.type = "checkbox";
-                checkbox.className = "w-6 h-6 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer";
-                
-                // 連動邏輯：點擊核取方塊時，同步更新隱藏的 select 選項
-                checkbox.onchange = function() {
-                    const targetOption = document.getElementById(`opt-${index}`);
-                    targetOption.selected = this.checked;
-                    
-                    // 點擊後改變背景顏色，提升操作手感
-                    if(this.checked) {
-                        label.classList.add('bg-blue-50');
-                    } else {
-                        label.classList.remove('bg-blue-50');
-                    }
-                };
+  function selectPerson(person) {
+    document.getElementById('btn-krai').className = "person-btn";
+    document.getElementById('btn-mon').className = "person-btn";
 
-                label.appendChild(spanText);
-                label.appendChild(checkbox);
-                checkboxList.appendChild(label);
-            });
+    if (person === 'krai') {
+      document.getElementById('btn-krai').classList.add('selected', 'krai');
+      currentTasks = data.krai;
+      card.style.setProperty('--accent', 'var(--accent-krai)');
+      card.style.setProperty('--accent-rgb', 'var(--accent-krai-rgb)');
+    } else {
+      document.getElementById('btn-mon').classList.add('selected', 'mon');
+      currentTasks = data.mon;
+      card.style.setProperty('--accent', 'var(--accent-mon)');
+      card.style.setProperty('--accent-rgb', 'var(--accent-mon-rgb)');
+    }
 
-            // Show task section
-            const taskSection = document.getElementById('task-section');
-            taskSection.classList.remove('hidden');
-            // Small delay to allow display:block to render before changing opacity for animation
-            setTimeout(() => {
-                taskSection.classList.remove('opacity-0');
-            }, 50);
+    const select = document.getElementById('task-select');
+    select.innerHTML = '<option value="">-- กรุณาเลือกงานที่ทำ --</option>';
 
-            // Hide result section when switching persons
-            document.getElementById('result-section').classList.add('hidden');
-            document.getElementById('result-section').classList.add('opacity-0');
-        }
+    const checkboxList = document.getElementById('task-checkbox-list');
+    checkboxList.innerHTML = '';
 
-        function selectTask() {
-            const select = document.getElementById('task-select');
-            const resultSection = document.getElementById('result-section');
-            const zhResult = document.getElementById('zh-result');
+    currentTasks.forEach((task, index) => {
+      const option = document.createElement('option');
+      option.value = task.zh;
+      option.textContent = task.th;
+      option.id = `opt-${index}`;
+      select.appendChild(option);
 
-            if (select.value) {
-                zhResult.textContent = select.value;
-                resultSection.classList.remove('hidden');
-                setTimeout(() => {
-                    resultSection.classList.remove('opacity-0');
-                }, 50);
-            } else {
-                resultSection.classList.add('opacity-0');
-                setTimeout(() => {
-                    resultSection.classList.add('hidden');
-                }, 300);
-            }
-        }
+      const row = document.createElement('label');
+      row.className = "task-row";
 
-        function confirmSelection() {
-            const select = document.getElementById('task-select');
-            const resultSection = document.getElementById('result-section');
-            const zhResult = document.getElementById('zh-result');
-            
-            // 抓取所有已選取的項目 (排除預設的空白選項)
-            const selectedOptions = Array.from(select.selectedOptions).filter(opt => opt.value !== "");
-            
-            if (selectedOptions.length > 0) {
-                let formattedResult = "";
-                selectedOptions.forEach((opt, index) => {
-                    formattedResult += `(${index + 1})${opt.value}\n`;
-                });
-                
-                // 使用 innerText 確保換行符號( \n )能完美呈現與被複製
-                zhResult.innerText = formattedResult.trim();
-                resultSection.classList.remove('hidden');
-                setTimeout(() => {
-                    resultSection.classList.remove('opacity-0');
-                }, 50);
-            } else {
-                resultSection.classList.add('opacity-0');
-                setTimeout(() => {
-                    resultSection.classList.add('hidden');
-                }, 300);
-            }
-        }
+      const spanText = document.createElement('span');
+      spanText.className = "label";
+      spanText.textContent = task.th;
 
-        function copyText() {
-            // 讀取 innerText 以保留多行列表的格式
-            const text = document.getElementById('zh-result').innerText;
-            
-            // Use execCommand for better cross-browser/iframe compatibility on mobile
-            const textArea = document.createElement("textarea");
-            textArea.value = text;
-            textArea.style.position = "fixed";
-            textArea.style.left = "-9999px";
-            document.body.appendChild(textArea);
-            textArea.select();
-            
-            try {
-                document.execCommand('copy');
-                showToast();
-            } catch (err) {
-                console.error('Copy failed', err);
-            }
-            
-            document.body.removeChild(textArea);
-        }
+      const checkbox = document.createElement('input');
+      checkbox.type = "checkbox";
 
-        function showToast() {
-            const toast = document.getElementById('toast');
-            const btnText = document.getElementById('copy-btn-text');
-            
-            // Change button visual temporarily
-            btnText.textContent = "คัดลอกแล้ว!";
-            
-            // Show toast
-            toast.classList.remove('opacity-0');
-            
-            // Hide after 2 seconds
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-                btnText.textContent = "คัดลอกข้อความ (Copy)";
-            }, 2000);
-        }
-    </script>
+      checkbox.onchange = function () {
+        const targetOption = document.getElementById(`opt-${index}`);
+        targetOption.selected = this.checked;
+        row.classList.toggle('checked', this.checked);
+      };
+
+      row.appendChild(spanText);
+      row.appendChild(checkbox);
+      checkboxList.appendChild(row);
+    });
+
+    document.getElementById('task-section').classList.add('visible');
+    document.getElementById('result-section').classList.remove('visible');
+  }
+
+  function confirmSelection() {
+    const select = document.getElementById('task-select');
+    const resultSection = document.getElementById('result-section');
+    const zhResult = document.getElementById('zh-result');
+
+    const selectedOptions = Array.from(select.selectedOptions).filter(opt => opt.value !== "");
+
+    if (selectedOptions.length > 0) {
+      let formattedResult = "";
+      selectedOptions.forEach((opt, index) => {
+        formattedResult += `(${index + 1})${opt.value}\n`;
+      });
+      zhResult.innerText = formattedResult.trim();
+      resultSection.classList.add('visible');
+    } else {
+      resultSection.classList.remove('visible');
+    }
+  }
+
+  function copyText() {
+    const text = document.getElementById('zh-result').innerText;
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showToast();
+    } catch (err) {
+      console.error('Copy failed', err);
+    }
+    document.body.removeChild(textArea);
+  }
+
+  function showToast() {
+    const toast = document.getElementById('toast');
+    const btnText = document.getElementById('copy-btn-text');
+    btnText.textContent = "คัดลอกแล้ว!";
+    toast.classList.add('show');
+    setTimeout(() => {
+      toast.classList.remove('show');
+      btnText.textContent = "คัดลอกข้อความ (Copy)";
+    }, 2000);
+  }
+
+  // ---------- Signature spotlight effect (desktop hover only) ----------
+  if (window.matchMedia('(hover: hover)').matches) {
+    card.addEventListener('pointermove', (e) => {
+      const rect = card.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 100;
+      const y = ((e.clientY - rect.top) / rect.height) * 100;
+      card.style.setProperty('--mx', x + '%');
+      card.style.setProperty('--my', y + '%');
+    });
+  }
+</script>
+
 </body>
 </html>
