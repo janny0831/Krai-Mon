@@ -272,10 +272,10 @@
     <div class="step-label"><span class="step-num">01</span><span class="step-text">เลือกพนักงาน (เลือกชื่อของคุณ)</span></div>
     <div class="person-grid">
       <button id="btn-krai" class="person-btn" onclick="selectPerson('krai')" aria-label="Krai / 阿凱">
-        <img class="photo" src="https://lh3.googleusercontent.com/d/1Yw2T6WOtDXWS7ViFFrRedHQotfPEvgkb" alt="Krai">
+        <img id="photo-krai" class="photo" src="https://lh3.googleusercontent.com/d/1neL_O0csc8kYQXjMaE2gLZdLXjrc4H5h" alt="Krai">
       </button>
       <button id="btn-mon" class="person-btn" onclick="selectPerson('mon')" aria-label="Mon / 娜萌">
-        <img class="photo" src="https://lh3.googleusercontent.com/d/1MFwU9sj2R6MMkOAJOwqRfjd0n2lYBmso" alt="Mon">
+        <img id="photo-mon" class="photo" src="https://lh3.googleusercontent.com/d/1jJzfZ_iYJPyzQGsnDmObE24Wmm3sWw7o" alt="Mon">
       </button>
     </div>
 
@@ -357,6 +357,12 @@
     ]
   };
 
+  // Photo URLs for the toggle states
+  const PHOTO_KRAI_DEFAULT = "https://lh3.googleusercontent.com/d/1neL_O0csc8kYQXjMaE2gLZdLXjrc4H5h"; // (A)
+  const PHOTO_KRAI_PRESSED = "https://lh3.googleusercontent.com/d/1B67CSJFpmvTkkKJnyiWGTNS2oQWg4ikk"; // (B)
+  const PHOTO_MON_DEFAULT  = "https://lh3.googleusercontent.com/d/1jJzfZ_iYJPyzQGsnDmObE24Wmm3sWw7o"; // (C)
+  const PHOTO_MON_PRESSED  = "https://lh3.googleusercontent.com/d/1Apc6DBCZmJldJ_0OrICqYZsrzoP8_zJr"; // (D)
+
   let currentTasks = [];
   const card = document.getElementById('card');
 
@@ -364,16 +370,23 @@
     document.getElementById('btn-krai').className = "person-btn";
     document.getElementById('btn-mon').className = "person-btn";
 
+    const photoKrai = document.getElementById('photo-krai');
+    const photoMon = document.getElementById('photo-mon');
+
     if (person === 'krai') {
       document.getElementById('btn-krai').classList.add('selected', 'krai');
       currentTasks = data.krai;
       card.style.setProperty('--accent', 'var(--accent-krai)');
       card.style.setProperty('--accent-rgb', 'var(--accent-krai-rgb)');
+      photoKrai.src = PHOTO_KRAI_PRESSED;
+      photoMon.src = PHOTO_MON_DEFAULT;
     } else {
       document.getElementById('btn-mon').classList.add('selected', 'mon');
       currentTasks = data.mon;
       card.style.setProperty('--accent', 'var(--accent-mon)');
       card.style.setProperty('--accent-rgb', 'var(--accent-mon-rgb)');
+      photoKrai.src = PHOTO_KRAI_DEFAULT;
+      photoMon.src = PHOTO_MON_PRESSED;
     }
 
     const select = document.getElementById('task-select');
